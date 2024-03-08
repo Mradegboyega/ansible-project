@@ -34,6 +34,30 @@
         mode: 0644
       tags: apache,apache2,ubuntu
 
+- hosts: all
+  become: true
+  task:
+    
+  - name: create a dev user access
+    user:
+      name: dev
+      groups: root  
+
+  - name: add ssh for user dev
+    tags: always
+    authorized_keys:
+      user: dev
+      key: ""
+
+  - name: add sudoer file for dev user
+    copy:
+      src: sudoer_dev
+      dest: /etc/sudoers.d/simone
+      owner: root
+      group: root
+      mode: 0440
+
+   
 - name: Configure Workstations
   hosts: workstations
   become: true
