@@ -1,20 +1,22 @@
 ---
-- hosts: all
+- name: Update and Upgrade all servers
+  hosts: all
   become: true
-  pre_tasks:
+  tasks:
     - name: Install updates (Ubuntu)
-      tags: always
       apt:
         upgrade: dist
         update_cache: yes
+      tags: always
 
-- hosts: web_servers
+- name: Configure Web Servers
+  hosts: web_servers
   become: true
   tasks:
     - name: Update package lists
-      tags: apache,apache2,ubuntu
       apt:
         update_cache: yes
+      tags: apache,apache2,ubuntu
 
     - name: Install Apache2 and PHP packages for Ubuntu servers
       apt:
@@ -23,31 +25,59 @@
           - libapache2-mod-php
         state: latest
 
-    - name: copy default html file for site
-      tags: apache,apache2,ubuntu
+    - name: Copy default HTML file for site
       copy:
         src: default_site.html
         dest: /var/www/html/index.html
         owner: root
         group: root
         mode: 0644
- 
-- hosts: db_servers
+      tags: apache,apache2,ubuntu
+
+- name: Configure Workstations
+  hosts: workstations
   become: true
   tasks:
+    - name: Install unzip
+      package:
+        name: unzip
 
-  - name: install mariadb package(Ubuntu)
-    tags: ubuntu,db,mariadb
-    apt:
-      name: mariadb-server
-      state: latest
+    - name: Install Terraform
+      get_url:
+        url: https://releases.hashicorp.com/terraform/1.7.4/terraform_1.7.4_linux_amd64.zip
+        dest: /tmp/terraform.zip
+        validate_certs: yes
+      become: true
+      tags: terraform
+      notify: Extract Terraform
 
-- hosts: file_servers
+  handlers:
+    - name: Extract Terraform
+      unarchive:
+        src: /tmp/terraform.zip
+        dest: /usr/local/bin
+        remote_src: yes
+        mode: 0755
+      become: true
+      tags: terraform
+
+- name: Configure Database Servers
+  hosts: db_servers
   become: true
   tasks:
+    - name: Install MariaDB package (Ubuntu)
+      apt:
+        name: mariadb-server
+        state: latest
+      tags: ubuntu,db,mariadb
 
-  - name: install samba package
-    tags: samba
-    package:
-          name: samba
-          state: latest
+- name: Configure File Servers
+  hosts: file_servers
+  become: true
+  tasks:
+    - name: Install Samba package
+      package:
+        name: samba
+        state: latest
+      tags: samba
+
